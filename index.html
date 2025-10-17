@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faceless Enigma Simulator</title>
+    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/hU0HDEsa8zJrz_81nFdYNZ4m2pf3t7M8526D7zaNdoYLvJlGZrtZC_hDiboAweg7PvE">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0rem;
+            padding: 1rem 2rem;
+            background: #fff;
+            border-radius: 2px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        header h1 {
+            margin-top: 0;
+        }
+        .content-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        .random-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .image-display {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .image-container {
+            position: relative;
+            border: 2px solid #ddd;
+            border-radius: 2px;
+            cursor: pointer;
+            margin-top: 20px;
+            /* -- UPDATED: Animation speed doubled (0.2s -> 0.1s) -- */
+            transition: border-color 0.15s ease, opacity 0.1s ease, transform 0.1s ease;
+        }
+        .image-container:not(.glow-green):not(.glow-red):hover {
+            border-color: #aaa;
+        }
+        .image-container img, .fixed-image img {
+            display: block;
+            max-width: 100%;
+            height: 250px;
+            width: auto;
+            border-radius: 2px;
+            object-fit: cover;
+        }
+        .regenerating {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        .fixed-image {
+            display: flex;
+            border-left: 2px solid #eee;
+            padding-left: 1rem;
+        }
+        .fixed-image img {
+            cursor: default;
+        }
+        .overlay-text {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, -120%);
+            width: 130px;
+            padding: 1px 12px;
+            border-radius: 2px;
+            font-size: 16px;
+            font-weight: bold;
+            opacity: 0;
+            pointer-events: none;
+            white-space: nowrap;
+            text-align: center;
+        }
+        .glow-green {
+            border-color: #28a745;
+            box-shadow: 0 0 0.5rem 0 rgba(40, 167, 69, 0.6);
+        }
+        .glow-red {
+            border-color: #dc3545;
+            box-shadow: 0 0 0.5rem 0 rgba(220, 53, 69, 0.6);
+        }
+        .glow-green .overlay-text, .glow-red .overlay-text {
+            opacity: 1;
+        }
+        .glow-green .overlay-text {
+            background-color: white;
+            color: black;
+            border: 2px solid #28a745;
+            box-shadow: 0 0 0.5rem 0 rgba(40, 167, 69, 0.6);
+        }
+        .glow-red .overlay-text {
+            background-color: white;
+            color: black;
+            border: 2px solid #dc3545;
+            box-shadow: 0 0 0.5rem 0 rgba(220, 53, 69, 0.6);
+        }
+        .glow-green .overlay-text::after {
+            content: "Your Secret";
+        }
+        .glow-red .overlay-text::after {
+            content: "Enemy Secret";
+        }
+        button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Pick a Secret (the other casts for your opponent)</h1>
+        </header>
+
+        <main class="content-wrapper">
+            <div class="random-section">
+                <div class="image-display">
+                    <div class="image-container" id="container-1">
+                        <img id="random-image-1" src="" alt="Random Image 1">
+                        <div class="overlay-text"></div>
+                    </div>
+                    <div class="image-container" id="container-2">
+                        <img id="random-image-2" src="" alt="Random Image 2">
+                        <div class="overlay-text"></div>
+                    </div>
+                </div>
+                <button id="regenerate-button">Regenerate</button>
+            </div>
+            
+            <div class="fixed-image">
+                <img id="fixed-image-3" src="" alt="Fixed Image 3">
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Pool of 10 random images
+        const imagePool = [
+            "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/a645cfa136ac875e0f432bf61acbf6a29b6243cc31dd28e9ae729e90a6fae28f.png",
+            "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/7b30ce236f8e928218561ec68140020f5c0063d867d25a94f98c15fce80b4d9b.png",
+            "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/4ce083c6c33eccc15f93d41b53b769fc0e3ebf8ad8c34519c52f5000501732db.png",
+            "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/2f372503c0c70dbae7e332283cfca88fbb3f50946b194e2b458a91324a4f8a71.png",
+            "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/870817119db86e89e4033e41071acca7e43037b53297279410df0194ef0f1149.png",
+            "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/5b18ad8e2f66a05ac3966a1bb73e81082472b2bc3bcfb889b243dfc257d57d49.png",
+            "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/03dc6c1b132191e12e90a6ebff32085ecb6ea2244cf01e70154b1abf6500041e.png",
+            "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/2d297391bc7a425b1be176841a48755b365d6041dbfb3112f3d557a6207983f8.png",
+            "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/d0e6f38802089550847e51acd0bef6298eef224fb084849ce12156616e19f93c.png",
+            "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/b8930aa56b2f2af97c900cbe778cee475288ee10041d4a56ba08bbf335b45ec6.png"
+        ];
+
+        // The fixed image URL
+        const fixedImageUrl = "https://d15f34w2p8l1cc.cloudfront.net/hearthstone/09450cb7bcd96cd4847e20b062e34601c851933afd266fc6af399c228ef10273.png";
+
+        // Get elements from the document
+        const container1 = document.getElementById('container-1');
+        const container2 = document.getElementById('container-2');
+        const image1 = document.getElementById('random-image-1');
+        const image2 = document.getElementById('random-image-2');
+        const fixedImage = document.getElementById('fixed-image-3');
+        const regenerateButton = document.getElementById('regenerate-button');
+
+        function setRandomImages() {
+            container1.classList.remove('glow-green', 'glow-red');
+            container2.classList.remove('glow-green', 'glow-red');
+
+            let availableImages = [...imagePool];
+
+            const index1 = Math.floor(Math.random() * availableImages.length);
+            image1.src = availableImages[index1];
+            availableImages.splice(index1, 1);
+
+            const index2 = Math.floor(Math.random() * availableImages.length);
+            image2.src = availableImages[index2];
+        }
+
+        fixedImage.src = fixedImageUrl;
+
+        regenerateButton.addEventListener('click', () => {
+            container1.classList.add('regenerating');
+            container2.classList.add('regenerating');
+
+            // -- UPDATED: Delay halved (200ms -> 100ms) --
+            setTimeout(() => {
+                setRandomImages();
+                container1.classList.remove('regenerating');
+                container2.classList.remove('regenerating');
+            }, 100); 
+        });
+
+        container1.addEventListener('click', () => {
+            container1.classList.add('glow-green');
+            container1.classList.remove('glow-red');
+            container2.classList.add('glow-red');
+            container2.classList.remove('glow-green');
+        });
+
+        container2.addEventListener('click', () => {
+            container2.classList.add('glow-green');
+            container2.classList.remove('glow-red');
+            container1.classList.add('glow-red');
+            container1.classList.remove('glow-green');
+        });
+
+        document.addEventListener('DOMContentLoaded', setRandomImages);
+    </script>
+
+</body>
+</html>
